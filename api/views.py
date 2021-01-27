@@ -1,4 +1,5 @@
 #models
+from django.db.models import query
 from api.models import Blog
 from api.serializers import BlogSerializers
 
@@ -13,6 +14,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework import mixins, generics
 
 # Create your views here
 
@@ -102,17 +104,17 @@ class ClassBasedApiShow(APIView):
         data = BlogSerializers(data=request.data)
         if data.is_valid():
             data.save()
-            return Response(f"ADDED SUCESSFULLY: {data.data}", status=status.HTTP_201_CREATED,)
+            return Response(f"ADDED SUCESSFULLY: {data.data}", status=status.HTTP_201_CREATED)
         return Response("FAILED TO CREATE", status=status.HTTP_400_BAD_REQUEST)
         
 
 class ClassBasedApiDetails(APIView):
     def get_object(self, pk):
         try:
-            return Blog.objects.get(pk)
+            return Blog.objects.get(pk=pk)
         except Blog.DoesNotExist:
-            raise Http404
-    
+            return Response("ERROR", status=status.HTTP_400_BAD_REQUEST)
+   
     def get(self, request, pk):
         data = self.get_object(pk)
         seri = BlogSerializers(data)
@@ -123,7 +125,7 @@ class ClassBasedApiDetails(APIView):
         seri = BlogSerializers(data, data=request.data)
         if seri.is_valid():
             seri.save()
-            return Response(seri.data, status=status.HTTP_202_ACCEPTED)
+            return Response(f"UPDATE SUCESSFULLY: {seri.data}", status=status.HTTP_202_ACCEPTED)
         return Response(f"ERROR: key{pk}", status=status.HTTP_204_NO_CONTENT)
     
     def delete(self, request, pk):
@@ -133,4 +135,45 @@ class ClassBasedApiDetails(APIView):
             return Response(f"Invalid Key: {pk}", status=status.HTTP_400_BAD_REQUEST)
         data.delete()
         return Response(f"Content Deleted key:{pk}", status=status.HTTP_202_ACCEPTED)
+    
+## Using mixing to create api
+
+class MixinShowApi(generics.CreateAPIView,
+                   mixins.ListModelMixin,
+                   mixins.CreateModelMixin):
+    queryset = Blog.objects.all()
+    serializer_class = BlogSerializers
+    
+    def get(self, request):
+        return self.list(request)
+
+    def post(self, request):
+        return self.create(request)
+    
+class MixinShowDetails(generics.CreateAPIView,
+                       mixins.RetrieveModelMixin,
+                       mixins.UpdateModelMixin,
+                       mixins.DestroyModelMixin,
+                       ):
+    queryset = Blog.objects.all()
+    serializer_class = BlogSerializers
+    
+    def get(self, request, pk):
+        return self.retrieve(request, id=pk)
+    
+    def put(self, request, pk):
+        return self.update(request, id=pk)
+    
+    def delete(self, request, pk):
+        return self.destroy(request, id=pk)
+    
+# GenericClassBasedView
+
+class GenericClassShowApi(generics.ListCreateAPIView):
+    queryset = Blog.objects.all()
+    serializer_class = BlogSerializers
+    
+class GenericClassShowDetails(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Blog.objects.all()
+    serializer_class = BlogSerializers
     
