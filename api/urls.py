@@ -12,6 +12,4 @@ urlpatterns = [
     path("mixins/<int:pk>", MixinShowDetails.as_view()),
     path("generic/", GenericClassShowApi.as_view()),
     path("generic/<int:pk>", GenericClassShowDetails.as_view())
-    
-
 ]
